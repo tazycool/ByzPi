@@ -1,0 +1,82 @@
+#!/usr/bin/ruby
+
+#
+# Destroys any pads that are older than 30 days.
+# Should be run regularly
+#
+# Requirements:
+#   sudo apt-get install ruby rubygems libmysql-ruby1.8
+#   sudo gem install json
+#   sudo gem install etherpad-lite -- NOTE: see README regarding a bug here
+#
+
+require "rubygems"
+require "mysql"
+#require "etherpad-lite/client"
+require File.dirname(__FILE__) + '/ruby-etherpad-lite/lib/etherpad-lite/client.rb'
+require "cgi"
+
+$db_host = '<%= db_host %>'
+$db_user = '<%= db_user %>'
+$db_db   = '<%= db_name %>'
+<% if db_password == 'trocla' -%>
+$db_pass = '<%= Puppet::Parser::Functions.function('trocla');'' %><%= scope.function_trocla('mysql_etherpad-lite','plain') %>'
+<% else -%>
+$db_pass = '<%= db_password %>'
+<% end -%>
+$api_url = '<%= api_url %>'
+$api_key = '<%= api_key %>'
+
+$verbose = ARGV.include?('--verbose')
+
+#
+# helpers
+#
+
+def destroy_pad_timestamps(pad_name)
+  if $verbose
+    print "removing timestamps '#{pad_name}'"
+    STDOUT.flush
+  end
+  $my.query("DELETE FROM pad_timestamps WHERE pad = '#{$my.escape_string(pad_name)}'")
+  puts '.' if $verbose
+end
+
+#
+# GET A LIST OF EXPIRED PADS
+#
+
+pads_to_destroy = []
+$my = Mysql::new($db_host, $db_user, $db_pass, $db_db)
+result = $my.query("SELECT pad FROM pad_timestamps WHERE time < DATE_SUB(NOW(), INTERVAL 30 day)")
+result.each do |row|
+  pads_to_destroy << row[0]
+end
+puts "found #{pads_to_destroy.length} pads to destroy" if $verbose
+
+#
+# DESTROY THE PADS
+#
+
+client = EtherpadLite::Client.new($api_url, $api_key)
+for pad in pads_to_destroy
+  next unless pad.any?
+  if $verbose
+    print "destroying '#{pad}'"
+    STDOUT.flush
+  end
+  begin
+    client.deletePad(pad)
+    puts '.' if $verbose
+    destroy_pad_timestamps(pad)
+  rescue StandardError => e
+    # puts e.backtrace
+    # skip missing pads
+    if e.to_s == "padID does not exist"
+      destroy_pad_timestamps(pad)
+    else
+      raise e
+    end
+  end
+  sleep 1.0
+end

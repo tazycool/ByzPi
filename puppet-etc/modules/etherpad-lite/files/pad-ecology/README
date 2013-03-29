@@ -1,0 +1,43 @@
+The way this works is that a new mysql table is created for timestamps that are
+updated whenever a new record in the main etherpad table is inserted. This is
+done with mysql triggers, so it only works with mysql as a backend. Then a
+clear-old-pads.rb uses the etherpad API to delete pads with old timestamps.
+
+It is recommended that you run the cronjob regularly, at least several times a
+day. This is because if you run it irregularly, it was found that deleting large
+numbers of pads would cause problems with the server, so its better to remove
+smaller batches more regularly.
+
+How to use:
+
+0. In your my.cnf you need something like the following:
+
+[mysqld]
+init_connect='SET collation_connection = utf8_general_ci; SET NAMES utf8;'
+
+1. Add the pad_timestamps table to your etherpad-lite database:
+mysql> use etherpad-lite
+mysql> \. timestamp-mysql.sql
+
+2. Put the ../../templates/pad-ecology/clear-old-pads.erb somewhere useful
+
+3. install the required gems:
+# sudo apt-get install ruby rubygems libmysql-ruby1.8
+# sudo gem install json
+
+NOTE: there is currently a bug with the current version of the ruby
+etherpad-lite API gem. Pad names with non-ascii characters in their names
+sometimes throw exceptions and keep things from being cleaned up. The unstable
+etherpad-lite gem fixes this issue
+
+4. Get the unstable etherpad-lite gem and put it in the same directory as the
+clear-old-pads.rb (dont worry, this is only used for the clear-old-pads.rb
+script, not for your main etherpad-lite)
+
+5. edit clear-old-pads.rb to fill out the database password, url and api key
+
+6. Setup a cronjob to run clear-old-pads.rb on a regular basis (maybe once per
+hour, like */1)
+
+You can run clear-old-pads.rb with --verbose to see if it works properly.
+
