@@ -33,7 +33,7 @@ bssid = '02:CA:FF:EE:BA:BE'
 essid = 'Byzantium'
 
 # Layer 3 defaults.
-mesh_netmask = '255.255.0.0'
+mesh_netmask = '255.255.255.255'
 client_netmask = '255.255.255.0'
 commotion_network = '5.0.0.0'
 commotion_netmask = '255.0.0.0'
@@ -109,44 +109,41 @@ if len(wireless):
 
         # Test the interface's current configuration.  Go back to the top of
         # the configuration loop and try again if it's not what we expect.
+        Mode = False
+        Essid = False
+        Bssid = False
+        Frequency = False
         for line in configuration:
-            if re.search("Mode|ESSID|Cell|Frequency", line):
-                line = line.split(' ')
-            else:
-                continue
-
             # Ad-hoc mode?
-            if 'Mode' in line:
-                mode = line[0].split(':')[1]
-                if mode != 'Ad-Hoc':
-                    break_flag = True
-                    break
+            match = re.search('Mode:([\w-]+)', line)
+            if match and match.group(1) == 'Ad-Hoc':
+                print "Mode is correct."
+                Mode = True
 
             # Correct ESSID?
-            if 'ESSID' in line:
-                ESSID = line[-1].split(':')[1]
-                if ESSID != essid:
-                    break_flag = True
-                    break
+            match = re.search('ESSID:"([\w]+)"', line)
+            if match and match.group(1) == essid:
+                print "ESSID is correct."
+                Essid = True
 
             # Correct BSSID?
-            if 'Cell' in line:
-                BSSID = line[-1]
-                if BSSID != bssid:
-                    break_flag = True
-                    break
+            match = re.search('Cell: (([\dA-F][\dA-F]:){5}[\dA-F][\dA-F])', line)
+            if match and match.group(1) == bssid:
+                print "BSSID is correct."
+                Bssid = True
 
             # Correct frequency (because iwconfig doesn't report channels)?
-            if 'Frequency' in line:
-                FREQUENCY = line[2].split(':')[1]
-                if FREQUENCY != frequency:
-                    break_flag = True
-                    break
+            match = re.search('Frequency:([\d.]+)', line)
+            if match and match.group(1) == frequency:
+                print "Channel is correct."
+                Frequency = True
 
         # "Victory is mine!"
         #     --Stewie, _Family Guy_
-        if not(break_flag):
+        if Mode and Essid and Bssid and Frequency:
             break
+        else:
+            print "Failed to setup the interface properly. Retrying..."
 
     # Turn up the interface.
     command = ['/sbin/ifconfig', interface, 'up']
@@ -162,7 +159,7 @@ if len(wireless):
         addr = addr + str(random.randint(1, 254))
 
         # Use arping to see if anyone's claimed it.
-        arping = ['/sbin/arping', '-c 5', '-D', '-f', '-q', '-I', interface,
+        arping = ['/usr/bin/arping', '-c 5', '-D', '-f', '-q', '-I', interface,
                   addr]
         ip_in_use = subprocess.call(arping)
 
@@ -180,7 +177,7 @@ if len(wireless):
         addr = addr + str(random.randint(0, 254)) + '.1'
 
         # Use arping to see if anyone's claimed it.
-        arping = ['/sbin/arping', '-c 5', '-D', '-f', '-q', '-I', interface,
+        arping = ['/usr/bin/arping', '-c 5', '-D', '-f', '-q', '-I', interface,
                   addr]
         ip_in_use = subprocess.call(arping)
 
@@ -215,6 +212,10 @@ if len(wireless):
     captive_portal_return = subprocess.Popen(captive_portal_daemon)
     time.sleep(5)
     print "Started captive portal daemon."
+else:
+    # There is no wireless interface.  Don't even bother continuing.
+    print "ERROR: I wasn't able to find a wireless interface to configure.  ABENDing."
+    sys.exit(1)
 
 # Build a string which can be used as a template for an /etc/hosts style file.
 (octet_one, octet_two, octet_three, _) = client_ip.split('.')
@@ -242,7 +243,7 @@ include_file.close()
 
 # Start dnsmasq.
 print "Starting dnsmasq."
-subprocess.Popen(['/etc/rc.d/rc.dnsmasq', 'restart'])
+subprocess.Popen(['/etc/init.d/dnsmasq', 'restart'])
 
 # Start olsrd.
 olsrd_command = ['/usr/sbin/olsrd', '-i']
