@@ -17,9 +17,9 @@ class nodejs(
     'Debian': {
       include 'apt'
 
-      apt::source { 'sid':
+      apt::source { 'wheezy':
         location    => 'http://ftp.us.debian.org/debian/',
-        release     => 'sid',
+        release     => 'wheezy',
         repos       => 'main',
         pin         => 100,
         include_src => false,
