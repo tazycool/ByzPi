@@ -28,3 +28,29 @@ file { '/etc/hostname':
   content     =>   'raspberrypi.byzantium.org
 ',
 }
+package { ['nfs-common','samba-common','rcpbind','portmap']:
+  ensure      =>  'absent',
+}
+file { '/etc/motd':
+  content     =>  'The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+
+------------------------------------------------------------------------------
+-                                                                            -
+-       Welcome to Byzantium Linux - Emergency Mesh Networking               -
+-                                                                            -
+-      To start a graphical environment, please type the following           -
+-                     command and hit ENTER.                                 -
+ startx                                                                      -
+-                                                                            -
+------------------------------------------------------------------------------
+'
+}
+package { ['ngircd','weechat','weechat-core','weechat-plugins',
+           'weechat-scripts']:
+  ensure   =>  'present',
+}
