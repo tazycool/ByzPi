@@ -6,8 +6,9 @@ class etherpad_lite (
   $nodejs_version = 'installed',
   $settings_content = 'absent',
   $settings_source = 'absent',
-  $repo = 'git://github.com/Pita/etherpad-lite.git',
-  $repo_ensure = 'present', $repo_rev = 'master',
+  $repo = 'git://github.com/ether/etherpad-lite.git',
+  $repo_ensure = 'present',
+  $repo_rev = 'master',
   $ensure = 'present',
   $clear_pads = 'absent',
   $api_url = 'absent',
@@ -150,7 +151,7 @@ class etherpad_lite (
   
   augeas {
     "logrotate_etherpad":
-      context   => "/files/etc/logrotate.d/etherpad-lite/rule",
+      context   => '/files/etc/logrotate.d/etherpad-lite/rule',
       changes   => [ 'set file /var/log/etherpad-lite/*.log',
                      'set rotate 5',
                      'set schedule daily',
@@ -166,7 +167,7 @@ class etherpad_lite (
   if $clear_pads != 'absent' {
 
     file { '/usr/local/bin/clear-old-pads.rb':
-      content    => template("etherpad_lite/pad-ecology/clear-old-pads.erb"),
+      content    => template('etherpad_lite/pad-ecology/clear-old-pads.erb'),
       mode       => 0755,
       owner      => etherpad-lite,
       group => etherpad-lite;

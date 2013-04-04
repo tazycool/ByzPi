@@ -1,14 +1,20 @@
 # Nodejs for etherpad
 
+Exec['apt-key-update'] -> Package<| |>
+
 package { ['libc-ares2','libc6','libev4','libgcc1','libssl1.0.0','libstdc++6',
   'libv8-3.8.9.20','zlib1g','libmysql-ruby','libjson-ruby', 'ruby-json',
   'rubygems']:
   ensure     =>   'present',
 }
-package { ['apt-file','git','mlocate']:
+package { ['apt-file','git','mlocate','chkconfig']:
   ensure     =>   'present',
 }
 class { 'nodejs': }
+exec { 'apt-key-update':
+  command    =>  'apt-key update', 
+  path       =>  '/bin:/sbin:/usr/bin:/usr/sbin',
+}
 exec { 'gem install etherpad-lite':
   path       =>   '/bin:/usr/bin',
   onlyif     =>   'gem list --local |grep etherpad-lite|wc -l |grep 0 > /dev/null',
@@ -50,7 +56,21 @@ permitted by applicable law.
 ------------------------------------------------------------------------------
 '
 }
-package { ['ngircd','weechat','weechat-core','weechat-plugins',
+package { ['weechat','weechat-core','weechat-plugins',
            'weechat-scripts']:
   ensure   =>  'present',
 }
+# work around for a missing key.
+
+exec { 'install-ngircd':
+  command  =>  'apt-get -y --force-yes install ngircd',
+  path     =>  '/bin:/sbin:/usr/bin:/usr/sbin',
+  onlyif   =>  'which ngircd| wc -l|grep 0 > /dev/null',
+}
+   
+# Packages for etherpad-lite
+package { ['gzip','git-core','curl','python','libssl-dev','pkg-config',
+           'build-essential']:
+  ensure   =>  'present',
+}
+
